@@ -7,7 +7,7 @@ const {
   unfollowPerson,
 } = require("../../controllers/client/follow.controller");
 
-route.post("/follow", followPerson);
-route.post("/unfollow", unfollowPerson);
+route.post("/follow", checkAccessWithSecretKey(), followPerson);
+route.post("/unfollow", checkAccessWithSecretKey(), unfollowPerson);
 
 module.exports = route;
