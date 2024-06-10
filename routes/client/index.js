@@ -24,6 +24,7 @@ const otp = require("./otp.route");
 const withdrawalRequest = require("./withdrawalRequest.route");
 const monetizationRequest = require("./monetizationRequest.route");
 const setting = require("./setting.route");
+const follow = require("./follow.route");
 
 //exports client's route.js
 route.use("/user", user);
@@ -44,6 +45,7 @@ route.use("/soundList", soundList);
 route.use("/liveUser", liveUser);
 route.use("/withdraw", withdraw);
 route.use("/otp", otp);
+route.use("/social", follow);
 route.use("/withdrawalRequest", withdrawalRequest);
 route.use("/monetizationRequest", monetizationRequest);
 route.use("/setting", setting);

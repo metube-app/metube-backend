@@ -34,7 +34,7 @@ route.patch("/updatePassword", checkAccessWithSecretKey(), UserController.update
 route.post("/setPassword", checkAccessWithSecretKey(), UserController.setPassword);
 
 //get particular channel's details (home page)
-route.get("/detailsOfChannel", checkAccessWithSecretKey(), UserController.detailsOfChannel);
+route.get("/detailsOfChannel", UserController.detailsOfChannel);
 
 //get particular's channel's videoType wise videos (videos, shorts) (your videos)
 route.get("/videosOfChannel", checkAccessWithSecretKey(), UserController.videosOfChannel);
