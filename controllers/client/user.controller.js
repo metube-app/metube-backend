@@ -213,10 +213,10 @@ exports.checkUser = async (req, res) => {
 
     if (user) {
       if (
-        cryptr.decrypt(user.password ? user.password.toString() : "") !==
+        (user.password ? user.password.toString() : "") !==
         req.body.password
       ) {
-        return res.status(200).json({
+        return res.status(400).json({
           status: false,
           message: "Password doesn't match for this user.",
           isLogin: false,
