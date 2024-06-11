@@ -775,7 +775,7 @@ exports.detailsOfChannel = async (req, res, next) => {
     ]);
 
     const followObject = await followsModel
-      .findOne({ email: user.email })
+      .findOne({ email: channel.email })
       .lean();
 
     if (!followObject) {
@@ -783,6 +783,8 @@ exports.detailsOfChannel = async (req, res, next) => {
         .status(400)
         .json({ status: false, message: "Followers Object is Corrupt." });
     }
+
+    const isFollowing = followObject.followers.includes(user.email);
 
     let followingCount = followObject.following.length;
     let followerCount = followObject.followers.length;
@@ -838,6 +840,7 @@ exports.detailsOfChannel = async (req, res, next) => {
       totalSubscribers: totalSubscribers,
       isSubscribed: isSubscribed,
       channelName: channelName,
+      isFollowing: isFollowing,
       channelImage: channelImage,
       followerCount: followerCount,
       followingCount: followingCount,
