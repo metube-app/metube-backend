@@ -841,6 +841,7 @@ exports.detailsOfChannel = async (req, res, next) => {
       isSubscribed: isSubscribed,
       channelName: channelName,
       isFollowing: isFollowing,
+      channelEmail: channel.email,
       channelImage: channelImage,
       followerCount: followerCount,
       followingCount: followingCount,
