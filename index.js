@@ -30,10 +30,10 @@ const db = require("./util/connection");
 //socket io
 const http = require("http");
 const server = http.createServer(app);
-global.io = require("socket.io")(server);
+// global.io = require("socket.io")(server);
 
 //socket.js
-require("./socket");
+// require("./socket");
 
 //purchase code
 function _0x1fa3() {
