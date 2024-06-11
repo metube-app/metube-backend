@@ -123,7 +123,7 @@ exports.store = async (req, res) => {
       const user = await User.findOne({ email: req.body.email });
 
       if (user) {
-        if (cryptr.decrypt(user.password) !== req.body.password) {
+        if (user.password !== req.body.password) {
           return res.status(200).json({
             status: false,
             message: "Oops ! Password doesn't match.",
