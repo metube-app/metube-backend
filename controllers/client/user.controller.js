@@ -34,6 +34,7 @@ const { checkPlan } = require("../../util/checkPlan");
 //monetization service
 const { monetizationEnabled } = require("../../util/monetizationEnabled");
 const followsModel = require("../../models/follows.model");
+const walletModel = require("../../models/wallet.model");
 
 //user function
 const userFunction = async (user, data_) => {
@@ -166,6 +167,8 @@ exports.store = async (req, res) => {
 
       await followsModel.create({ email });
 
+      const walletObj = await walletModel.create({ amount: 0 });
+
       newUser.date = new Date().toLocaleString("en-US", {
         timeZone: "Asia/Kolkata",
       });
@@ -174,6 +177,7 @@ exports.store = async (req, res) => {
 
       newUser.isChannel = true;
       newUser.channelId = uuid.v4();
+      newUser.wallet = walletObj._id;
 
       await newUser.save();
 
@@ -213,8 +217,7 @@ exports.checkUser = async (req, res) => {
 
     if (user) {
       if (
-        (user.password ? user.password.toString() : "") !==
-        req.body.password
+        (user.password ? user.password.toString() : "") !== req.body.password
       ) {
         return res.status(400).json({
           status: false,
@@ -512,7 +515,7 @@ exports.getProfile = async (req, res) => {
     const user = await User.findOne({
       _id: req.query.userId,
       isActive: true,
-    }).populate("plan.premiumPlanId");
+    }).populate("plan.premiumPlanId wallet");
     if (!user) {
       return res
         .status(200)

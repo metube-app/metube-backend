@@ -36,7 +36,11 @@ const userSchema = new mongoose.Schema(
     plan: {
       planStartDate: { type: String, default: null }, //premium plan start date
       planEndDate: { type: String, default: null }, //Premium plan end date
-      premiumPlanId: { type: mongoose.Schema.Types.ObjectId, ref: "PremiumPlan", default: null },
+      premiumPlanId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PremiumPlan",
+        default: null,
+      },
     },
 
     isAddByAdmin: { type: Boolean, default: false },
@@ -46,12 +50,17 @@ const userSchema = new mongoose.Schema(
 
     isLive: { type: Boolean, default: false },
     channel: { type: String, default: null },
-    liveHistoryId: { type: mongoose.Schema.Types.ObjectId, ref: "LiveHistory", default: null },
+    liveHistoryId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LiveHistory",
+      default: null,
+    },
 
     totalWatchTime: { type: Number, default: 0 }, //that value always save in minutes for Monetization
     totalCurrentWatchTime: { type: Number, default: 0 }, //that value always save in minutes for Withdrawal
 
     totalWithdrawableAmount: { type: Number, default: 0 },
+    wallet: { type: mongoose.Schema.Types.ObjectId, ref: "Wallet", default: null },
 
     isMonetization: { type: Boolean, default: false },
   },

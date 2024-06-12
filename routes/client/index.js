@@ -25,6 +25,7 @@ const withdrawalRequest = require("./withdrawalRequest.route");
 const monetizationRequest = require("./monetizationRequest.route");
 const setting = require("./setting.route");
 const follow = require("./follow.route");
+const wallet = require("./wallet.route");
 
 //exports client's route.js
 route.use("/user", user);
@@ -49,5 +50,6 @@ route.use("/social", follow);
 route.use("/withdrawalRequest", withdrawalRequest);
 route.use("/monetizationRequest", monetizationRequest);
 route.use("/setting", setting);
+route.use("/wallet", wallet);
 
 module.exports = route;
