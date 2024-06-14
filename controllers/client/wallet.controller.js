@@ -100,6 +100,14 @@ exports.redeemRequest = async (req, res) => {
       return res.status(400).json({ message: "Amount higher than balance." });
     }
 
+    const existingRedeemRequest = await redeemRequestModel.findOne({
+      userId : user._id
+    });
+
+    if(existingRedeemRequest){
+      return res.status(400).json({ message: "Already Redeemed", isRedeemed : true})
+    }
+
     const redeemRequest = await redeemRequestModel.create({
       redeemAmount: amount,
       walletId: wallet._id,
