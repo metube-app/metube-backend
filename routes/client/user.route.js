@@ -11,6 +11,7 @@ const checkAccessWithSecretKey = require("../../checkAccess");
 
 //controller
 const UserController = require("../../controllers/client/user.controller");
+const referralCostModel = require("../../models/referralCost.model");
 
 //user login or sign up
 route.post("/login", checkAccessWithSecretKey(), UserController.store);
@@ -20,6 +21,9 @@ route.post("/checkUser", checkAccessWithSecretKey(), UserController.checkUser);
 
 //get user profile who login
 route.get("/profile", checkAccessWithSecretKey(), UserController.getProfile);
+
+//to make the user referred
+route.post("/refer", checkAccessWithSecretKey(), UserController.getReferral);
 
 //update details of the channel (create your channel button)
 route.patch("/update", checkAccessWithSecretKey(), upload.single("image"), UserController.update);

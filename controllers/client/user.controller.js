@@ -35,6 +35,7 @@ const { checkPlan } = require("../../util/checkPlan");
 const { monetizationEnabled } = require("../../util/monetizationEnabled");
 const followsModel = require("../../models/follows.model");
 const walletModel = require("../../models/wallet.model");
+const referralCostModel = require("../../models/referralCost.model");
 
 //user function
 const userFunction = async (user, data_) => {
@@ -196,6 +197,63 @@ exports.store = async (req, res) => {
     });
   }
 };
+
+exports.getReferral = async (req, res) => {
+  try {
+    const {userId, email} = req.body;
+
+    if(!userId || !email){
+      return res.status(400).json({ message : "Required fields not sent" });
+    }
+
+    const user = await User.findById(userId);
+
+    if(!user){
+      return res.status(400).json({ message : "User not found"});
+    }
+
+    const otherUser = await User.findOne({email});
+
+    if(!otherUser){
+      return res.status(400).json({ message : "Other User not found."});
+    }
+
+    if(user.isReferred){
+      return res.status(400).json({ message : "You already claimed referral"});
+    }
+
+    user.referredBy = otherUser._id;
+    user.isReferred = true;
+
+    await user.save();
+
+    const referralCost = await referralCostModel.findOne({documentId : "referralCost"}).lean();
+
+    const walletId = otherUser.wallet;
+    const userWalletId = user.wallet;
+
+    const walletObj = await walletModel.findById(walletId);
+
+    const userWalletObj = await walletModel.findById(userWalletId);
+
+    if(!walletObj || !userWalletObj){
+      return res.status(400).json({ message : "Wallet not found." });
+    }
+
+    walletObj.balance += referralCost.referralCost;
+    userWalletObj.balance += referralCost.referredCost;
+
+    await walletObj.save();
+    await userWalletObj.save();
+
+    return res.status(200).json({ message : "Referral Activated" });
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Sever Error",
+    });
+  }
+}
 
 //check the user is exists or not
 exports.checkUser = async (req, res) => {

@@ -47,9 +47,14 @@ const userSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     isBlock: { type: Boolean, default: false },
     isVerified: { type: Boolean, default: false },
-
+    isReferred: { type: Boolean, default: false },
     isLive: { type: Boolean, default: false },
     channel: { type: String, default: null },
+    referredBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     liveHistoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "LiveHistory",
@@ -60,7 +65,11 @@ const userSchema = new mongoose.Schema(
     totalCurrentWatchTime: { type: Number, default: 0 }, //that value always save in minutes for Withdrawal
 
     totalWithdrawableAmount: { type: Number, default: 0 },
-    wallet: { type: mongoose.Schema.Types.ObjectId, ref: "Wallet", default: null },
+    wallet: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Wallet",
+      default: null,
+    },
 
     isMonetization: { type: Boolean, default: false },
   },
