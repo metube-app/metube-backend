@@ -87,6 +87,7 @@ exports.getStories = async (req, res) => {
           id: story._id,
           user_id: user._id,
           url: story.link,
+          type: story.type,
           create_date: story.createdAt,
           username: user.fullName,
           profile_pic: user.image,
