@@ -60,7 +60,7 @@ exports.storyUpload = async (req, res) => {
 
 exports.getFollowerStories = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.query;
 
     if (!userId) {
       return res
@@ -145,7 +145,7 @@ exports.getFollowerStories = async (req, res) => {
 
 exports.getStories = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { userId } = req.query;
 
     if (!userId) {
       return res
