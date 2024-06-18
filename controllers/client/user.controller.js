@@ -36,6 +36,7 @@ const { monetizationEnabled } = require("../../util/monetizationEnabled");
 const followsModel = require("../../models/follows.model");
 const walletModel = require("../../models/wallet.model");
 const referralCostModel = require("../../models/referralCost.model");
+const storyModel = require("../../models/story.model");
 
 //user function
 const userFunction = async (user, data_) => {
@@ -167,6 +168,8 @@ exports.store = async (req, res) => {
       const { email } = req.body;
 
       await followsModel.create({ email });
+
+      await storyModel.create({userId : newUser._id});
 
       const walletObj = await walletModel.create({ amount: 0 });
 
