@@ -74,33 +74,15 @@ exports.getFollowerStories = async (req, res) => {
       return res.status(400).json({ status: false, message: "User not found" });
     }
 
-    const storyObj = await storyModel.findOne({ userId: user._id });
-
     const followObj = await followsModel.findOne({ email: user.email });
 
-    const following = followObj.following;
+    const following = [user.email, ...followObj.following];
 
     const now = new Date();
     const futureDate = new Date();
     futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const posts = storyObj.stories
-      .filter((story) => new Date(story.expiresAt) <= futureDate)
-      .map((story) => {
-        return {
-          story_id: story._id,
-          id: story._id,
-          user_id: user._id,
-          url: story.link,
-          type: story.type,
-          create_date: story.createdAt,
-          username: user.fullName,
-          profile_pic: user.image,
-          story_image: null,
-        };
-      });
-
-    following.forEach(async (flw) => {
+    const responseObject = following.map(async (flw) => {
       const now = new Date();
       const futureDate = new Date();
       futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
@@ -109,21 +91,26 @@ exports.getFollowerStories = async (req, res) => {
 
       const otherStoryObj = await storyModel.findOne({ userId: otherUser._id });
 
-      otherStoryObj.stories
+      const storyImages = otherStoryObj.stories
         .filter((story) => new Date(story.expiresAt) <= futureDate)
-        .forEach((story) => {
-          posts.push({
-            story_id: story._id,
-            id: story._id,
-            user_id: otherUser._id,
+        .map((story) => {
+          return {
             url: story.link,
             type: story.type,
-            create_date: story.createdAt,
-            username: otherUser.fullName,
-            profile_pic: otherUser.image,
-            story_image: null,
-          });
+          };
         });
+
+      return {
+        story_id: otherStoryObj._id,
+        id: otherStoryObj._id,
+        user_id: otherUser._id,
+        url: otherStoryObj.stories[0]?._id || "",
+        type: "image",
+        create_data: otherStoryObj.createdAt,
+        username: otherUser.fullName,
+        profile_pic: otherUser.image,
+        story_image : storyImages
+      };
     });
 
     const response = {
@@ -131,62 +118,7 @@ exports.getFollowerStories = async (req, res) => {
       msg: "Story Successfully Retrieved",
       user_id: user._id,
       profile_pic: user.image,
-      post: posts,
-    };
-
-    return res.status(200).json(response);
-  } catch (error) {
-    return res.status(500).json({
-      status: false,
-      message: error.message || "Internal Server Error",
-    });
-  }
-};
-
-exports.getStories = async (req, res) => {
-  try {
-    const { userId } = req.query;
-
-    if (!userId) {
-      return res
-        .status(400)
-        .json({ status: false, message: "UserID not found" });
-    }
-
-    const user = await userModel.findById(userId);
-
-    if (!user) {
-      return res.status(400).json({ status: false, message: "User not found" });
-    }
-
-    const storyObj = await storyModel.findOne({ userId: user._id });
-
-    const now = new Date();
-    const futureDate = new Date();
-    futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
-
-    const posts = storyObj.stories
-      .filter((story) => new Date(story.expiresAt) <= futureDate)
-      .map((story) => {
-        return {
-          story_id: story._id,
-          id: story._id,
-          user_id: user._id,
-          url: story.link,
-          type: story.type,
-          create_date: story.createdAt,
-          username: user.fullName,
-          profile_pic: user.image,
-          story_image: null,
-        };
-      });
-
-    const response = {
-      status: "success",
-      msg: "Story Successfully Retrieved",
-      user_id: user._id,
-      profile_pic: user.image,
-      post: posts,
+      post: responseObject,
     };
 
     return res.status(200).json(response);

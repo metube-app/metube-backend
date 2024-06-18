@@ -11,8 +11,6 @@ const { storyUpload, getStories, getFollowerStories } = require("../../controlle
 
 route.put("/upload-file", upload.single("content"), checkAccessWithSecretKey(), storyUpload);
 
-route.get("/get-stories", checkAccessWithSecretKey(), getStories);
-
 route.get("/get-all-stories", checkAccessWithSecretKey(), getFollowerStories);
 
 module.exports = route;
