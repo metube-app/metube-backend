@@ -78,40 +78,40 @@ exports.getFollowerStories = async (req, res) => {
 
     const following = [user.email, ...followObj.following];
 
-    const now = new Date();
-    const futureDate = new Date();
-    futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
+    const responseObject = await Promise.all(
+      following.map(async (flw) => {
+        const now = new Date();
+        const futureDate = new Date();
+        futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
 
-    const responseObject = following.map(async (flw) => {
-      const now = new Date();
-      const futureDate = new Date();
-      futureDate.setTime(now.getTime() + 24 * 60 * 60 * 1000);
+        const otherUser = await userModel.findOne({ email: flw });
 
-      const otherUser = await userModel.findOne({ email: flw });
-
-      const otherStoryObj = await storyModel.findOne({ userId: otherUser._id });
-
-      const storyImages = otherStoryObj.stories
-        .filter((story) => new Date(story.expiresAt) <= futureDate)
-        .map((story) => {
-          return {
-            url: story.link,
-            type: story.type,
-          };
+        const otherStoryObj = await storyModel.findOne({
+          userId: otherUser._id,
         });
 
-      return {
-        story_id: otherStoryObj._id,
-        id: otherStoryObj._id,
-        user_id: otherUser._id,
-        url: otherStoryObj.stories[0]?._id || "",
-        type: "image",
-        create_data: otherStoryObj.createdAt,
-        username: otherUser.fullName,
-        profile_pic: otherUser.image,
-        story_image : storyImages
-      };
-    });
+        const storyImages = otherStoryObj.stories
+          .filter((story) => new Date(story.expiresAt) <= futureDate)
+          .map((story) => {
+            return {
+              url: story.link,
+              type: story.type,
+            };
+          });
+
+        return {
+          story_id: otherStoryObj._id,
+          id: otherStoryObj._id,
+          user_id: otherUser._id,
+          url: otherStoryObj.stories[0]?._id || "",
+          type: "image",
+          create_data: otherStoryObj.createdAt,
+          username: otherUser.fullName,
+          profile_pic: otherUser.image,
+          story_image: storyImages,
+        };
+      })
+    );
 
     const response = {
       status: "success",
