@@ -58,6 +58,41 @@ exports.storyUpload = async (req, res) => {
   }
 };
 
+exports.deleteStory = async (req, res) => {
+  try {
+    const {userId, url} = req.body;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ status: false, message: "UserID not found" });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(400).json({ status: false, message: "User not found" });
+    }
+
+    const storyObj = await storyModel.findOne({userId : user._id});
+
+    if(!storyObj){
+      return res.status(400).json({ message : "No story object found."});
+    }
+
+    storyObj.stories = storyObj.stories.filter(story => story.link != url);
+
+    await storyObj.save();
+
+    return res.status(200).json({ message : "successfully deleted the story." });
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+}
+
 exports.getFollowerStories = async (req, res) => {
   try {
     const { userId } = req.query;
