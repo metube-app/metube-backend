@@ -131,6 +131,7 @@ exports.getFollowerStories = async (req, res) => {
             return {
               url: story.link,
               type: story.type,
+              userId: otherUser._id.toString()
             };
           });
 
