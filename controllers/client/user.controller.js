@@ -1279,6 +1279,7 @@ exports.searchChannel = async (req, res) => {
             $project: {
               channelId: 1,
               fullName: 1,
+              email: 1,
               image: 1,
               isSubscribed: {
                 $cond: [{ $eq: [{ $size: "$isSubscribed" }, 0] }, false, true],
