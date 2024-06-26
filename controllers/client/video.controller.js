@@ -240,7 +240,7 @@ exports.deleteVideo = async (req, res) => {
         .json({ status: false, message: "UserID not found" });
     }
 
-    const user = await userModel.findById(userId);
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(400).json({ status: false, message: "User not found" });
