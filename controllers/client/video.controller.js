@@ -51,43 +51,69 @@ exports.createVideo = async (req, res) => {
       !req.body.videoUrl ||
       !req.body.videoImage
     ) {
-      return res.status(200).json({ status: false, message: "Oops ! Invalid details!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "Oops ! Invalid details!" });
     }
 
     if (req.body.scheduleType == 1 && !req.body.scheduleTime) {
-      return res.status(200).json({ status: false, message: "scheduleTime must be required!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "scheduleTime must be required!" });
     }
 
     if (req.body.videoType == 2) {
       const setting = await Setting.findOne().sort({ createdAt: -1 });
-      if (!setting) return res.status(200).json({ status: false, message: "setting does not found!" });
+      if (!setting)
+        return res
+          .status(200)
+          .json({ status: false, message: "setting does not found!" });
 
       if (setting.durationOfShorts < parseInt(req.body.videoTime)) {
-        return res.status(200).json({ status: false, message: "your duration of Shorts greater than decided by admin!" });
+        return res.status(200).json({
+          status: false,
+          message: "your duration of Shorts greater than decided by admin!",
+        });
       }
     }
 
     if (req?.body?.soundListId) {
       var soundList = await SoundList.findById(req?.body?.soundListId);
-      if (!soundList) return res.status(200).json({ status: false, message: "soundList does not found!" });
+      if (!soundList)
+        return res
+          .status(200)
+          .json({ status: false, message: "soundList does not found!" });
     }
 
-    const user = await User.findOne({ _id: req.body.userId, isActive: true, isAddByAdmin: false });
+    const user = await User.findOne({
+      _id: req.body.userId,
+      isActive: true,
+      isAddByAdmin: false,
+    });
     if (!user) {
-      return res.status(200).json({ status: false, message: "user does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "user does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
     const channel = await User.findOne({ channelId: user.channelId });
     if (!channel) {
-      return res.status(200).json({ status: false, message: "channel does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "channel does not found!" });
     }
 
     if (user.channelId !== req.body.channelId) {
-      return res.status(200).json({ status: false, message: "video has been uploaded only by own channelId." });
+      return res.status(200).json({
+        status: false,
+        message: "video has been uploaded only by own channelId.",
+      });
     }
 
     const video = new Video();
@@ -111,7 +137,10 @@ exports.createVideo = async (req, res) => {
       } else if (req?.body?.scheduleType == 2) {
         video.scheduleTime = "";
       } else {
-        return res.status(200).json({ status: false, message: "scheduleType must be passed valid!" });
+        return res.status(200).json({
+          status: false,
+          message: "scheduleType must be passed valid!",
+        });
       }
     }
 
@@ -139,7 +168,9 @@ exports.createVideo = async (req, res) => {
     ]);
 
     //if user subscribed that channel then send notification to that users
-    const channelSubscribedByUsers = await UserWiseSubscription.find({ channelId: req.body.channelId }).distinct("userId");
+    const channelSubscribedByUsers = await UserWiseSubscription.find({
+      channelId: req.body.channelId,
+    }).distinct("userId");
     console.log("channelSubscribedByUsers: ", channelSubscribedByUsers);
 
     await Promise.all(
@@ -155,7 +186,8 @@ exports.createVideo = async (req, res) => {
           const notification = new Notification();
 
           notification.title = "🔔 New Video Alert! 🔔";
-          notification.message = "Hey there! We're excited to share our latest video. Don't miss out Click here to watch the video now!";
+          notification.message =
+            "Hey there! We're excited to share our latest video. Don't miss out Click here to watch the video now!";
           notification.userId = user?._id;
           notification.videoId = video?._id;
           notification.channelImage = channel.image;
@@ -198,6 +230,41 @@ exports.createVideo = async (req, res) => {
   }
 };
 
+exports.deleteVideo = async (req, res) => {
+  try {
+    const { userId, url } = req.body;
+
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ status: false, message: "UserID not found" });
+    }
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(400).json({ status: false, message: "User not found" });
+    }
+
+    const video = await Video.findOne({ userId: user._id, videoUrl: url });
+
+    if (!video) {
+      return res
+        .status(400)
+        .json({ message: "You dont have permission to delete." });
+    }
+
+    await Video.findOneAndDelete({ userId: user._id, videoUrl: url });
+
+    return res.status(200).json({ message: "successfully deleted the video." });
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 //when user share (normal videos or shorts) then shareCount increased
 exports.shareCount = async (req, res) => {
   try {
@@ -213,23 +280,35 @@ exports.shareCount = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found!!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found!!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
     if (!video) {
-      return res.status(200).json({ status: false, message: "video does not found!!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "video does not found!!" });
     }
 
     video.shareCount += 1;
     await video.save();
 
-    return res.status(200).json({ status: true, message: "finally, when user share video then shareCount increased!", video });
+    return res.status(200).json({
+      status: true,
+      message: "finally, when user share video then shareCount increased!",
+      video,
+    });
   } catch (error) {
-    return res.status(500).json({ status: false, error: error.message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: false, error: error.message || "Internal Server Error" });
   }
 };
 
@@ -237,7 +316,10 @@ exports.shareCount = async (req, res) => {
 exports.shortsOfUser = async (req, res) => {
   try {
     if (!req.query.userId || !req.query.videoId) {
-      return res.status(200).json({ status: false, message: "userId and videoId must be requried." });
+      return res.status(200).json({
+        status: false,
+        message: "userId and videoId must be requried.",
+      });
     }
 
     const start = req.query.start ? parseInt(req.query.start) : 1;
@@ -245,11 +327,15 @@ exports.shortsOfUser = async (req, res) => {
 
     const user = await User.findOne({ _id: req.query.userId, isActive: true });
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
     let shorts = await Video.aggregate([
@@ -285,7 +371,10 @@ exports.shortsOfUser = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $and: [{ $eq: ["$channelId", "$$channelId"] }, { $eq: ["$userId", "$$userId"] }],
+                  $and: [
+                    { $eq: ["$channelId", "$$channelId"] },
+                    { $eq: ["$userId", "$$userId"] },
+                  ],
                 },
               },
             },
@@ -303,7 +392,10 @@ exports.shortsOfUser = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$recursiveCommentId", null] }],
+                  $and: [
+                    { $eq: ["$videoId", "$$videoId"] },
+                    { $eq: ["$recursiveCommentId", null] },
+                  ],
                 },
               },
             },
@@ -322,7 +414,10 @@ exports.shortsOfUser = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                  $and: [
+                    { $eq: ["$videoId", "$$videoId"] },
+                    { $eq: ["$userId", "$$userId"] },
+                  ],
                 },
               },
             },
@@ -373,10 +468,18 @@ exports.shortsOfUser = async (req, res) => {
           },
 
           isLike: {
-            $cond: [{ $eq: ["$likeHistory.likeOrDislike", "like"] }, true, false],
+            $cond: [
+              { $eq: ["$likeHistory.likeOrDislike", "like"] },
+              true,
+              false,
+            ],
           },
           isDislike: {
-            $cond: [{ $eq: ["$likeHistory.likeOrDislike", "dislike"] }, true, false],
+            $cond: [
+              { $eq: ["$likeHistory.likeOrDislike", "dislike"] },
+              true,
+              false,
+            ],
           },
 
           views: { $size: "$views" },
@@ -387,7 +490,9 @@ exports.shortsOfUser = async (req, res) => {
     ]);
 
     // Find the index of the specified videoId
-    const videoIndex = shorts.findIndex((short) => short._id.toString() === req.query.videoId);
+    const videoIndex = shorts.findIndex(
+      (short) => short._id.toString() === req.query.videoId
+    );
 
     // If the videoId is found, move it to the 0th index
     if (videoIndex !== -1) {
@@ -401,10 +506,17 @@ exports.shortsOfUser = async (req, res) => {
     // Limit the shorts based on the new start value
     shorts = shorts.slice(adjustedStart - 1, adjustedStart - 1 + limit);
 
-    return res.status(200).json({ status: true, message: "finally, get all shorts for user.", shorts });
+    return res.status(200).json({
+      status: true,
+      message: "finally, get all shorts for user.",
+      shorts,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -412,7 +524,9 @@ exports.shortsOfUser = async (req, res) => {
 exports.getShorts = async (req, res) => {
   try {
     if (!req.query.userId) {
-      return res.status(200).json({ status: false, message: "Oops ! Invalid details!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "Oops ! Invalid details!" });
     }
 
     const start = req.query.start ? parseInt(req.query.start) : 1;
@@ -456,7 +570,10 @@ exports.getShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$channelId", "$$channelId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$channelId", "$$channelId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -474,7 +591,10 @@ exports.getShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$recursiveCommentId", null] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$recursiveCommentId", null] },
+                    ],
                   },
                 },
               },
@@ -493,7 +613,10 @@ exports.getShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -529,7 +652,10 @@ exports.getShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -560,14 +686,26 @@ exports.getShorts = async (req, res) => {
             },
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             isLike: {
-              $cond: [{ $eq: ["$likeHistory.likeOrDislike", "like"] }, true, false],
+              $cond: [
+                { $eq: ["$likeHistory.likeOrDislike", "like"] },
+                true,
+                false,
+              ],
             },
             isDislike: {
-              $cond: [{ $eq: ["$likeHistory.likeOrDislike", "dislike"] }, true, false],
+              $cond: [
+                { $eq: ["$likeHistory.likeOrDislike", "dislike"] },
+                true,
+                false,
+              ],
             },
 
             views: { $size: "$views" },
@@ -579,17 +717,28 @@ exports.getShorts = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
-    return res.status(200).json({ status: true, message: "finally, get all shorts for user.", shorts });
+    return res.status(200).json({
+      status: true,
+      message: "finally, get all shorts for user.",
+      shorts,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -600,7 +749,9 @@ exports.getVideos = async (req, res) => {
     const limit = req.query.limit ? parseInt(req.query.limit) : 50;
 
     if (!req.query.userId) {
-      return res.status(200).json({ status: false, message: "Oops ! Invalid details." });
+      return res
+        .status(200)
+        .json({ status: false, message: "Oops ! Invalid details." });
     }
 
     let now = dayjs();
@@ -651,7 +802,10 @@ exports.getVideos = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -676,7 +830,11 @@ exports.getVideos = async (req, res) => {
             channelImage: "$channel.image",
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             time: {
@@ -691,31 +849,104 @@ exports.getVideos = async (req, res) => {
                         branches: [
                           {
                             case: { $gte: ["$$timeDiff", 31536000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 31536000000] } } }, " years ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 31536000000],
+                                    },
+                                  },
+                                },
+                                " years ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 2592000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 2592000000] } } }, " months ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 2592000000],
+                                    },
+                                  },
+                                },
+                                " months ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 604800000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 604800000] } } }, " weeks ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 604800000],
+                                    },
+                                  },
+                                },
+                                " weeks ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 86400000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 86400000] } } }, " days ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 86400000],
+                                    },
+                                  },
+                                },
+                                " days ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 3600000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 3600000] } } }, " hours ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 3600000],
+                                    },
+                                  },
+                                },
+                                " hours ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 60000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 60000] } } }, " minutes ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 60000] },
+                                  },
+                                },
+                                " minutes ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 1000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 1000] } } }, " seconds ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 1000] },
+                                  },
+                                },
+                                " seconds ago",
+                              ],
+                            },
                           },
                           { case: true, then: "Just now" },
                         ],
@@ -734,83 +965,114 @@ exports.getVideos = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
-    return res.status(200).json({ status: true, message: "finally, get all videos for the user.", videos: videos });
+    return res.status(200).json({
+      status: true,
+      message: "finally, get all videos for the user.",
+      videos: videos,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
 //get channel details of shorts for user
 exports.channeldetailsOfShorts = async (req, res) => {
   try {
-    if (!req.query.channelId || !req.query.userId || !req.query.start || !req.query.limit) {
-      return res.status(200).json({ status: false, message: "Oops ! Invalid details!" });
+    if (
+      !req.query.channelId ||
+      !req.query.userId ||
+      !req.query.start ||
+      !req.query.limit
+    ) {
+      return res
+        .status(200)
+        .json({ status: false, message: "Oops ! Invalid details!" });
     }
 
     const start = req.query.start ? parseInt(req.query.start) : 1;
     const limit = req.query.limit ? parseInt(req.query.limit) : 50;
 
-    const [channel, user, totalShortsOfChannel, isSubscribedChannel] = await Promise.all([
-      User.findOne({ channelId: req.query.channelId }),
-      User.findOne({ _id: req.query.userId, isActive: true }),
-      Video.countDocuments({ channelId: req.query.channelId, videoType: 2 }),
-      UserWiseSubscription.findOne({ $and: [{ userId: req.query.userId }, { channelId: req.query.channelId }] }),
-    ]);
+    const [channel, user, totalShortsOfChannel, isSubscribedChannel] =
+      await Promise.all([
+        User.findOne({ channelId: req.query.channelId }),
+        User.findOne({ _id: req.query.userId, isActive: true }),
+        Video.countDocuments({ channelId: req.query.channelId, videoType: 2 }),
+        UserWiseSubscription.findOne({
+          $and: [
+            { userId: req.query.userId },
+            { channelId: req.query.channelId },
+          ],
+        }),
+      ]);
 
     if (!channel) {
-      return res.status(200).json({ status: false, message: "channel does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "channel does not found!" });
     }
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "user does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "user does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
-    const [isSubscribed, channelName, channelImage, totalSubscribers, data] = await Promise.all([
-      isSubscribedChannel ? true : false,
-      channel.fullName,
-      channel.image,
-      UserWiseSubscription.countDocuments({ channelId: channel.channelId }),
+    const [isSubscribed, channelName, channelImage, totalSubscribers, data] =
+      await Promise.all([
+        isSubscribedChannel ? true : false,
+        channel.fullName,
+        channel.image,
+        UserWiseSubscription.countDocuments({ channelId: channel.channelId }),
 
-      Video.aggregate([
-        {
-          $match: { channelId: channel.channelId, videoType: 2 },
-        },
-        {
-          $lookup: {
-            from: "watchhistories",
-            localField: "_id",
-            foreignField: "videoId",
-            as: "views",
+        Video.aggregate([
+          {
+            $match: { channelId: channel.channelId, videoType: 2 },
           },
-        },
-        {
-          $project: {
-            title: 1,
-            videoType: 1,
-            videoTime: 1,
-            videoUrl: 1,
-            videoImage: 1,
-            channelId: 1,
-            createdAt: 1,
-            views: { $size: "$views" },
+          {
+            $lookup: {
+              from: "watchhistories",
+              localField: "_id",
+              foreignField: "videoId",
+              as: "views",
+            },
           },
-        },
-        { $skip: (start - 1) * limit },
-        { $limit: limit },
-      ]),
-    ]);
+          {
+            $project: {
+              title: 1,
+              videoType: 1,
+              videoTime: 1,
+              videoUrl: 1,
+              videoImage: 1,
+              channelId: 1,
+              createdAt: 1,
+              views: { $size: "$views" },
+            },
+          },
+          { $skip: (start - 1) * limit },
+          { $limit: limit },
+        ]),
+      ]);
 
     return res.status(200).json({
       status: true,
@@ -824,7 +1086,10 @@ exports.channeldetailsOfShorts = async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -837,7 +1102,9 @@ exports.videosOfHome = async (req, res) => {
     const limit = req.query.limit ? parseInt(req.query.limit) : 50;
 
     if (!req.query.userId) {
-      return res.status(200).json({ status: false, message: "userId must be requried." });
+      return res
+        .status(200)
+        .json({ status: false, message: "userId must be requried." });
     }
 
     const userId = new mongoose.Types.ObjectId(req.query.userId);
@@ -882,7 +1149,10 @@ exports.videosOfHome = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -907,7 +1177,11 @@ exports.videosOfHome = async (req, res) => {
             channelImage: "$channel.image",
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             time: {
@@ -922,31 +1196,104 @@ exports.videosOfHome = async (req, res) => {
                         branches: [
                           {
                             case: { $gte: ["$$timeDiff", 31536000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 31536000000] } } }, " years ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 31536000000],
+                                    },
+                                  },
+                                },
+                                " years ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 2592000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 2592000000] } } }, " months ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 2592000000],
+                                    },
+                                  },
+                                },
+                                " months ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 604800000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 604800000] } } }, " weeks ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 604800000],
+                                    },
+                                  },
+                                },
+                                " weeks ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 86400000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 86400000] } } }, " days ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 86400000],
+                                    },
+                                  },
+                                },
+                                " days ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 3600000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 3600000] } } }, " hours ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 3600000],
+                                    },
+                                  },
+                                },
+                                " hours ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 60000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 60000] } } }, " minutes ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 60000] },
+                                  },
+                                },
+                                " minutes ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 1000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 1000] } } }, " seconds ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 1000] },
+                                  },
+                                },
+                                " seconds ago",
+                              ],
+                            },
                           },
                           { case: true, then: "Just now" },
                         ],
@@ -964,19 +1311,30 @@ exports.videosOfHome = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
     const [shuffledVideos] = await Promise.all([shuffleArray(videos)]);
 
-    return res.status(200).json({ status: true, message: "finally, get all videos for the user!", videos: shuffledVideos });
+    return res.status(200).json({
+      status: true,
+      message: "finally, get all videos for the user!",
+      videos: shuffledVideos,
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -1023,7 +1381,10 @@ exports.detailsOfVideo = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$recursiveCommentId", null] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$recursiveCommentId", null] },
+                    ],
                   },
                 },
               },
@@ -1047,7 +1408,10 @@ exports.detailsOfVideo = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$channelId", "$$channel"] }, { $eq: ["$userId", "$$user"] }],
+                    $and: [
+                      { $eq: ["$channelId", "$$channel"] },
+                      { $eq: ["$userId", "$$user"] },
+                    ],
                   },
                 },
               },
@@ -1074,7 +1438,10 @@ exports.detailsOfVideo = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1096,7 +1463,10 @@ exports.detailsOfVideo = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1129,14 +1499,26 @@ exports.detailsOfVideo = async (req, res) => {
             },
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             isLike: {
-              $cond: [{ $eq: ["$likeHistory.likeOrDislike", "like"] }, true, false],
+              $cond: [
+                { $eq: ["$likeHistory.likeOrDislike", "like"] },
+                true,
+                false,
+              ],
             },
             isDislike: {
-              $cond: [{ $eq: ["$likeHistory.likeOrDislike", "dislike"] }, true, false],
+              $cond: [
+                { $eq: ["$likeHistory.likeOrDislike", "dislike"] },
+                true,
+                false,
+              ],
             },
 
             time: {
@@ -1151,31 +1533,104 @@ exports.detailsOfVideo = async (req, res) => {
                         branches: [
                           {
                             case: { $gte: ["$$timeDiff", 31536000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 31536000000] } } }, " years ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 31536000000],
+                                    },
+                                  },
+                                },
+                                " years ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 2592000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 2592000000] } } }, " months ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 2592000000],
+                                    },
+                                  },
+                                },
+                                " months ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 604800000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 604800000] } } }, " weeks ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 604800000],
+                                    },
+                                  },
+                                },
+                                " weeks ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 86400000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 86400000] } } }, " days ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 86400000],
+                                    },
+                                  },
+                                },
+                                " days ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 3600000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 3600000] } } }, " hours ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 3600000],
+                                    },
+                                  },
+                                },
+                                " hours ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 60000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 60000] } } }, " minutes ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 60000] },
+                                  },
+                                },
+                                " minutes ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 1000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 1000] } } }, " seconds ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 1000] },
+                                  },
+                                },
+                                " seconds ago",
+                              ],
+                            },
                           },
                           { case: true, then: "Just now" },
                         ],
@@ -1191,21 +1646,34 @@ exports.detailsOfVideo = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "user does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "user does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
     if (!video) {
-      return res.status(200).json({ status: false, message: "video does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "video does not found." });
     }
 
-    return res.status(200).json({ status: true, message: "finally, get particular video's details for user.", detailsOfVideo: data[0] });
+    return res.status(200).json({
+      status: true,
+      message: "finally, get particular video's details for user.",
+      detailsOfVideo: data[0],
+    });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, message: error.message || "Internal Server Error" });
+    return res.status(500).json({
+      status: false,
+      message: error.message || "Internal Server Error",
+    });
   }
 };
 
@@ -1218,30 +1686,37 @@ exports.likeOrDislikeOfVideo = async (req, res) => {
         message: "Oops ! Invalid details!",
       });
 
-    const [user, video, likedOrDislikedVideo, alreadylikedOrDislikedVideo] = await Promise.all([
-      User.findOne({ _id: req.query.userId, isActive: true }),
-      Video.findById(req.query.videoId),
-      Video.findOne({
-        _id: req.query.videoId,
-        $or: [{ like: { $gt: 0 } }, { dislike: { $gt: 0 } }],
-      }),
-      LikeHistoryOfVideo.findOne({
-        userId: req.query.userId,
-        videoId: req.query.videoId,
-        $or: [{ likeOrDislike: "like" }, { likeOrDislike: "dislike" }],
-      }),
-    ]);
+    const [user, video, likedOrDislikedVideo, alreadylikedOrDislikedVideo] =
+      await Promise.all([
+        User.findOne({ _id: req.query.userId, isActive: true }),
+        Video.findById(req.query.videoId),
+        Video.findOne({
+          _id: req.query.videoId,
+          $or: [{ like: { $gt: 0 } }, { dislike: { $gt: 0 } }],
+        }),
+        LikeHistoryOfVideo.findOne({
+          userId: req.query.userId,
+          videoId: req.query.videoId,
+          $or: [{ likeOrDislike: "like" }, { likeOrDislike: "dislike" }],
+        }),
+      ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "user does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "user does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
     if (!video) {
-      return res.status(200).json({ status: false, message: "video does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "video does not found!" });
     }
 
     if (alreadylikedOrDislikedVideo) {
@@ -1327,7 +1802,10 @@ exports.likeOrDislikeOfVideo = async (req, res) => {
           isLike: false,
         });
       } else {
-        return res.status(200).json({ status: false, message: "likeOrDislike must be passed valid." });
+        return res.status(200).json({
+          status: false,
+          message: "likeOrDislike must be passed valid.",
+        });
       }
     } else {
       console.log("else");
@@ -1343,7 +1821,11 @@ exports.likeOrDislikeOfVideo = async (req, res) => {
         likeHistory.likeOrDislike = "like";
         await likeHistory.save();
 
-        return res.status(200).json({ status: true, message: "likeOrDislike wise like or dislike updated", isLike: true });
+        return res.status(200).json({
+          status: true,
+          message: "likeOrDislike wise like or dislike updated",
+          isLike: true,
+        });
       } else if (req.query.likeOrDislike === "dislike") {
         video.dislike += 1;
         await video.save();
@@ -1355,9 +1837,16 @@ exports.likeOrDislikeOfVideo = async (req, res) => {
         likeHistory.likeOrDislike = "dislike";
         await likeHistory.save();
 
-        return res.status(200).json({ status: true, message: "likeOrDislike wise like or dislike updated", isLike: false });
+        return res.status(200).json({
+          status: true,
+          message: "likeOrDislike wise like or dislike updated",
+          isLike: false,
+        });
       } else {
-        return res.status(200).json({ status: true, message: "likeOrDislike must be passed valid" });
+        return res.status(200).json({
+          status: true,
+          message: "likeOrDislike must be passed valid",
+        });
       }
     }
   } catch (error) {
@@ -1373,24 +1862,36 @@ exports.likeOrDislikeOfVideo = async (req, res) => {
 exports.getAllLikeThis = async (req, res) => {
   try {
     if (!req.query.videoId || !req.query.userId) {
-      return res.status(400).json({ status: false, message: "videoId and userId must be required." });
+      return res.status(400).json({
+        status: false,
+        message: "videoId and userId must be required.",
+      });
     }
 
     const userId = new mongoose.Types.ObjectId(req.query.userId);
     const videoId = new mongoose.Types.ObjectId(req.query.videoId);
 
-    const [user, video] = await Promise.all([User.findOne({ _id: userId, isActive: true }), Video.findById(videoId)]);
+    const [user, video] = await Promise.all([
+      User.findOne({ _id: userId, isActive: true }),
+      Video.findById(videoId),
+    ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "user does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "user does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
     if (!video) {
-      return res.status(200).json({ status: false, message: "Video does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "Video does not found." });
     }
 
     const similarVideos = await Video.find({
@@ -1398,14 +1899,21 @@ exports.getAllLikeThis = async (req, res) => {
       videoType: { $eq: video.videoType },
     })
       .lean()
-      .select("_id title videoImage videoUrl videoTime videoType channelId userId createdAt");
+      .select(
+        "_id title videoImage videoUrl videoTime videoType channelId userId createdAt"
+      );
 
     const data = await Promise.all(
       similarVideos.map(async (similarVideo) => {
         const [totalViews, user, isSaved] = await Promise.all([
           WatchHistory.countDocuments({ videoId: similarVideo?._id }),
-          User.findById(similarVideo?.userId).select("fullName image channelId"),
-          SaveToWatchLater.exists({ userId: userId, videoId: similarVideo._id }),
+          User.findById(similarVideo?.userId).select(
+            "fullName image channelId"
+          ),
+          SaveToWatchLater.exists({
+            userId: userId,
+            videoId: similarVideo._id,
+          }),
         ]);
 
         const now = new Date();
@@ -1448,10 +1956,16 @@ exports.getAllLikeThis = async (req, res) => {
       })
     );
 
-    return res.status(200).json({ status: true, message: "Successfully retrieved similar videos.", data });
+    return res.status(200).json({
+      status: true,
+      message: "Successfully retrieved similar videos.",
+      data,
+    });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ status: false, error: error.message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: false, error: error.message || "Internal Server Error" });
   }
 };
 
@@ -1502,7 +2016,10 @@ exports.search = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$channelId", "$$channelId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$channelId", "$$channelId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1532,7 +2049,10 @@ exports.search = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1557,7 +2077,11 @@ exports.search = async (req, res) => {
             },
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             views: { $size: "$views" },
@@ -1574,31 +2098,104 @@ exports.search = async (req, res) => {
                         branches: [
                           {
                             case: { $gte: ["$$timeDiff", 31536000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 31536000000] } } }, " years ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 31536000000],
+                                    },
+                                  },
+                                },
+                                " years ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 2592000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 2592000000] } } }, " months ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 2592000000],
+                                    },
+                                  },
+                                },
+                                " months ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 604800000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 604800000] } } }, " weeks ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 604800000],
+                                    },
+                                  },
+                                },
+                                " weeks ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 86400000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 86400000] } } }, " days ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 86400000],
+                                    },
+                                  },
+                                },
+                                " days ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 3600000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 3600000] } } }, " hours ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 3600000],
+                                    },
+                                  },
+                                },
+                                " hours ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 60000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 60000] } } }, " minutes ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 60000] },
+                                  },
+                                },
+                                " minutes ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 1000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 1000] } } }, " seconds ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 1000] },
+                                  },
+                                },
+                                " seconds ago",
+                              ],
+                            },
                           },
                           { case: true, then: "Just now" },
                         ],
@@ -1619,17 +2216,25 @@ exports.search = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
-    return res.status(200).json({ status: true, message: "Success", searchData: response });
+    return res
+      .status(200)
+      .json({ status: true, message: "Success", searchData: response });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, error: error.message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: false, error: error.message || "Internal Server Error" });
   }
 };
 
@@ -1645,11 +2250,15 @@ exports.searchData = async (req, res) => {
 
     const user = await User.findOne({ _id: req.query.userId, isActive: true });
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
     const lastSearchedData = await SearchHistory.find({ userId: user.id })
@@ -1693,7 +2302,12 @@ exports.searchShorts = async (req, res) => {
               {
                 $or: [
                   { title: { $regex: req.body.searchString, $options: "i" } },
-                  { description: { $regex: req.body.searchString, $options: "i" } },
+                  {
+                    description: {
+                      $regex: req.body.searchString,
+                      $options: "i",
+                    },
+                  },
                 ],
               },
               { videoType: 2 },
@@ -1724,7 +2338,10 @@ exports.searchShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$channelId", "$$channelId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$channelId", "$$channelId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1754,7 +2371,10 @@ exports.searchShorts = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [{ $eq: ["$videoId", "$$videoId"] }, { $eq: ["$userId", "$$userId"] }],
+                    $and: [
+                      { $eq: ["$videoId", "$$videoId"] },
+                      { $eq: ["$userId", "$$userId"] },
+                    ],
                   },
                 },
               },
@@ -1779,7 +2399,11 @@ exports.searchShorts = async (req, res) => {
             views: { $size: "$views" },
 
             isSaveToWatchLater: {
-              $cond: [{ $eq: [{ $size: "$isSaveToWatchLater" }, 0] }, false, true],
+              $cond: [
+                { $eq: [{ $size: "$isSaveToWatchLater" }, 0] },
+                false,
+                true,
+              ],
             },
 
             time: {
@@ -1794,31 +2418,104 @@ exports.searchShorts = async (req, res) => {
                         branches: [
                           {
                             case: { $gte: ["$$timeDiff", 31536000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 31536000000] } } }, " years ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 31536000000],
+                                    },
+                                  },
+                                },
+                                " years ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 2592000000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 2592000000] } } }, " months ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 2592000000],
+                                    },
+                                  },
+                                },
+                                " months ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 604800000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 604800000] } } }, " weeks ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 604800000],
+                                    },
+                                  },
+                                },
+                                " weeks ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 86400000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 86400000] } } }, " days ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 86400000],
+                                    },
+                                  },
+                                },
+                                " days ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 3600000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 3600000] } } }, " hours ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: {
+                                      $divide: ["$$timeDiff", 3600000],
+                                    },
+                                  },
+                                },
+                                " hours ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 60000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 60000] } } }, " minutes ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 60000] },
+                                  },
+                                },
+                                " minutes ago",
+                              ],
+                            },
                           },
                           {
                             case: { $gte: ["$$timeDiff", 1000] },
-                            then: { $concat: [{ $toString: { $floor: { $divide: ["$$timeDiff", 1000] } } }, " seconds ago"] },
+                            then: {
+                              $concat: [
+                                {
+                                  $toString: {
+                                    $floor: { $divide: ["$$timeDiff", 1000] },
+                                  },
+                                },
+                                " seconds ago",
+                              ],
+                            },
                           },
                           { case: true, then: "Just now" },
                         ],
@@ -1839,17 +2536,25 @@ exports.searchShorts = async (req, res) => {
     ]);
 
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found." });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found." });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin." });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin." });
     }
 
-    return res.status(200).json({ status: true, message: "Success", searchShortsData: response });
+    return res
+      .status(200)
+      .json({ status: true, message: "Success", searchShortsData: response });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ status: false, error: error.message || "Internal Server Error" });
+    return res
+      .status(500)
+      .json({ status: false, error: error.message || "Internal Server Error" });
   }
 };
 
@@ -1857,19 +2562,27 @@ exports.searchShorts = async (req, res) => {
 exports.clearAllSearchHistory = async (req, res) => {
   try {
     if (!req.query.userId) {
-      return res.status(200).json({ status: false, message: "Oops! Invalid details!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "Oops! Invalid details!" });
     }
 
     const user = await User.findOne({ _id: req.query.userId, isActive: true });
     if (!user) {
-      return res.status(200).json({ status: false, message: "User does not found!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "User does not found!" });
     }
 
     if (user.isBlock) {
-      return res.status(200).json({ status: false, message: "you are blocked by admin!" });
+      return res
+        .status(200)
+        .json({ status: false, message: "you are blocked by admin!" });
     }
 
-    const clearSearchHistory = await SearchHistory.deleteMany({ userId: user._id });
+    const clearSearchHistory = await SearchHistory.deleteMany({
+      userId: user._id,
+    });
 
     if (clearSearchHistory.deletedCount > 0) {
       return res.status(200).json({

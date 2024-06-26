@@ -23,6 +23,12 @@ route.post(
   videoController.createVideo
 );
 
+route.post(
+  "/deleteVideo",
+  checkAccessWithSecretKey(),
+  videoController.deleteVideo
+);
+
 //when user share (normal videos or shorts) then shareCount increased
 route.post("/shareCount", checkAccessWithSecretKey(), videoController.shareCount);
 
