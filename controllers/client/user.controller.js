@@ -850,6 +850,38 @@ exports.detailsOfChannel = async (req, res, next) => {
 
     const isFollowing = followObject.followers.includes(user.email);
 
+    const followingList = await User.aggregate([
+      {
+        $match: {
+          email: { $in: followObject.following }
+        }
+      },
+      {
+        $project: {
+          _id : 1,
+          fullName : 1,
+          image : 1,
+          channelId : 1
+        }
+      }
+    ]);
+
+    const followerList = await User.aggregate([
+      {
+        $match: {
+          email: { $in: followObject.followers }
+        }
+      },
+      {
+        $project: {
+          _id : 1,
+          fullName : 1,
+          image : 1,
+          channelId : 1
+        }
+      }
+    ]);
+
     let followingCount = followObject.following.length;
     let followerCount = followObject.followers.length;
 
@@ -905,6 +937,8 @@ exports.detailsOfChannel = async (req, res, next) => {
       isSubscribed: isSubscribed,
       channelName: channelName,
       isFollowing: isFollowing,
+      followerList: followerList,
+      followingList: followingList,
       channelEmail: channel.email,
       channelImage: channelImage,
       followerCount: followerCount,
