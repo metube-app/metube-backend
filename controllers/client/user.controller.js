@@ -72,7 +72,7 @@ const userFunction = async (user, data_) => {
     : user.socialMediaLinks.websiteLink;
 
   user.loginType = data.loginType ? data.loginType : user.loginType;
-  user.password = data.password ? cryptr.encrypt(data.password) : user.password;
+  user.password = data.password ? data.password : user.password;
   user.identity = data.identity;
   user.fcmToken = data.fcmToken;
   user.uniqueId = !user.uniqueId
@@ -83,7 +83,7 @@ const userFunction = async (user, data_) => {
 
   //return user with decrypt password
   user.password = data.password
-    ? await cryptr.decrypt(user.password)
+    ? user.password
     : user.password;
   return user;
 };
